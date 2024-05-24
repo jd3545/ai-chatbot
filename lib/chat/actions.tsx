@@ -33,7 +33,7 @@ import {
 } from '@/lib/utils'
 import { saveChat } from '@/app/actions'
 import { SpinnerMessage, UserMessage } from '@/components/stocks/message'
-import { Chat, Message } from '@/lib/types'
+import { Chat } from '@/lib/types'
 import { auth } from '@/auth'
 
 async function confirmPurchase(symbol: string, price: number, amount: number) {
@@ -85,7 +85,18 @@ async function confirmPurchase(symbol: string, price: number, amount: number) {
     aiState.done({
       ...aiState.get(),
       messages: [
-        ...aiState.get().messages,
+        ...aiState.get().messages.slice(0, -1),
+        {
+          id: nanoid(),
+          role: 'function',
+          name: 'showStockPurchase',
+          content: JSON.stringify({
+            symbol,
+            price,
+            defaultAmount: amount,
+            status: 'completed'
+          })
+        },
         {
           id: nanoid(),
           role: 'system',
@@ -197,35 +208,15 @@ async function submitUserMessage(content: string) {
 
           await sleep(1000)
 
-          const toolCallId = nanoid()
-
           aiState.done({
             ...aiState.get(),
             messages: [
               ...aiState.get().messages,
               {
                 id: nanoid(),
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'tool-call',
-                    toolName: 'listStocks',
-                    toolCallId,
-                    args: { stocks }
-                  }
-                ]
-              },
-              {
-                id: nanoid(),
-                role: 'tool',
-                content: [
-                  {
-                    type: 'tool-result',
-                    toolName: 'listStocks',
-                    toolCallId,
-                    result: stocks
-                  }
-                ]
+                role: 'function',
+                name: 'listStocks',
+                content: JSON.stringify(stocks)
               }
             ]
           })
@@ -258,35 +249,15 @@ async function submitUserMessage(content: string) {
 
           await sleep(1000)
 
-          const toolCallId = nanoid()
-
           aiState.done({
             ...aiState.get(),
             messages: [
               ...aiState.get().messages,
               {
                 id: nanoid(),
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'tool-call',
-                    toolName: 'showStockPrice',
-                    toolCallId,
-                    args: { symbol, price, delta }
-                  }
-                ]
-              },
-              {
-                id: nanoid(),
-                role: 'tool',
-                content: [
-                  {
-                    type: 'tool-result',
-                    toolName: 'showStockPrice',
-                    toolCallId,
-                    result: { symbol, price, delta }
-                  }
-                ]
+                role: 'function',
+                name: 'showStockPrice',
+                content: JSON.stringify({ symbol, price, delta })
               }
             ]
           })
@@ -315,42 +286,11 @@ async function submitUserMessage(content: string) {
             )
         }),
         generate: async function* ({ symbol, price, numberOfShares = 100 }) {
-          const toolCallId = nanoid()
-
           if (numberOfShares <= 0 || numberOfShares > 1000) {
             aiState.done({
               ...aiState.get(),
               messages: [
                 ...aiState.get().messages,
-                {
-                  id: nanoid(),
-                  role: 'assistant',
-                  content: [
-                    {
-                      type: 'tool-call',
-                      toolName: 'showStockPurchase',
-                      toolCallId,
-                      args: { symbol, price, numberOfShares }
-                    }
-                  ]
-                },
-                {
-                  id: nanoid(),
-                  role: 'tool',
-                  content: [
-                    {
-                      type: 'tool-result',
-                      toolName: 'showStockPurchase',
-                      toolCallId,
-                      result: {
-                        symbol,
-                        price,
-                        numberOfShares,
-                        status: 'expired'
-                      }
-                    }
-                  ]
-                },
                 {
                   id: nanoid(),
                   role: 'system',
@@ -360,55 +300,37 @@ async function submitUserMessage(content: string) {
             })
 
             return <BotMessage content={'Invalid amount'} />
-          } else {
-            aiState.done({
-              ...aiState.get(),
-              messages: [
-                ...aiState.get().messages,
-                {
-                  id: nanoid(),
-                  role: 'assistant',
-                  content: [
-                    {
-                      type: 'tool-call',
-                      toolName: 'showStockPurchase',
-                      toolCallId,
-                      args: { symbol, price, numberOfShares }
-                    }
-                  ]
-                },
-                {
-                  id: nanoid(),
-                  role: 'tool',
-                  content: [
-                    {
-                      type: 'tool-result',
-                      toolName: 'showStockPurchase',
-                      toolCallId,
-                      result: {
-                        symbol,
-                        price,
-                        numberOfShares
-                      }
-                    }
-                  ]
-                }
-              ]
-            })
-
-            return (
-              <BotCard>
-                <Purchase
-                  props={{
-                    numberOfShares,
-                    symbol,
-                    price: +price,
-                    status: 'requires_action'
-                  }}
-                />
-              </BotCard>
-            )
           }
+
+          aiState.done({
+            ...aiState.get(),
+            messages: [
+              ...aiState.get().messages,
+              {
+                id: nanoid(),
+                role: 'function',
+                name: 'showStockPurchase',
+                content: JSON.stringify({
+                  symbol,
+                  price,
+                  numberOfShares
+                })
+              }
+            ]
+          })
+
+          return (
+            <BotCard>
+              <Purchase
+                props={{
+                  numberOfShares,
+                  symbol,
+                  price: +price,
+                  status: 'requires_action'
+                }}
+              />
+            </BotCard>
+          )
         }
       },
       getEvents: {
@@ -434,35 +356,15 @@ async function submitUserMessage(content: string) {
 
           await sleep(1000)
 
-          const toolCallId = nanoid()
-
           aiState.done({
             ...aiState.get(),
             messages: [
               ...aiState.get().messages,
               {
                 id: nanoid(),
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'tool-call',
-                    toolName: 'getEvents',
-                    toolCallId,
-                    args: { events }
-                  }
-                ]
-              },
-              {
-                id: nanoid(),
-                role: 'tool',
-                content: [
-                  {
-                    type: 'tool-result',
-                    toolName: 'getEvents',
-                    toolCallId,
-                    result: events
-                  }
-                ]
+                role: 'function',
+                name: 'getEvents',
+                content: JSON.stringify(events)
               }
             ]
           })
@@ -481,6 +383,13 @@ async function submitUserMessage(content: string) {
     id: nanoid(),
     display: result.value
   }
+}
+
+export type Message = {
+  role: 'user' | 'assistant' | 'system' | 'function' | 'data' | 'tool'
+  content: string
+  id: string
+  name?: string
 }
 
 export type AIState = {
@@ -516,7 +425,7 @@ export const AI = createAI<AIState, UIState>({
       return
     }
   },
-  onSetAIState: async ({ state }) => {
+  onSetAIState: async ({ state, done }) => {
     'use server'
 
     const session = await auth()
@@ -527,9 +436,7 @@ export const AI = createAI<AIState, UIState>({
       const createdAt = new Date()
       const userId = session.user.id as string
       const path = `/chat/${chatId}`
-
-      const firstMessageContent = messages[0].content as string
-      const title = firstMessageContent.substring(0, 100)
+      const title = messages[0].content.substring(0, 100)
 
       const chat: Chat = {
         id: chatId,
@@ -553,36 +460,28 @@ export const getUIStateFromAIState = (aiState: Chat) => {
     .map((message, index) => ({
       id: `${aiState.chatId}-${index}`,
       display:
-        message.role === 'tool' ? (
-          message.content.map(tool => {
-            return tool.toolName === 'listStocks' ? (
-              <BotCard>
-                {/* TODO: Infer types based on the tool result*/}
-                {/* @ts-expect-error */}
-                <Stocks props={tool.result} />
-              </BotCard>
-            ) : tool.toolName === 'showStockPrice' ? (
-              <BotCard>
-                {/* @ts-expect-error */}
-                <Stock props={tool.result} />
-              </BotCard>
-            ) : tool.toolName === 'showStockPurchase' ? (
-              <BotCard>
-                {/* @ts-expect-error */}
-                <Purchase props={tool.result} />
-              </BotCard>
-            ) : tool.toolName === 'getEvents' ? (
-              <BotCard>
-                {/* @ts-expect-error */}
-                <Events props={tool.result} />
-              </BotCard>
-            ) : null
-          })
+        message.role === 'function' ? (
+          message.name === 'listStocks' ? (
+            <BotCard>
+              <Stocks props={JSON.parse(message.content)} />
+            </BotCard>
+          ) : message.name === 'showStockPrice' ? (
+            <BotCard>
+              <Stock props={JSON.parse(message.content)} />
+            </BotCard>
+          ) : message.name === 'showStockPurchase' ? (
+            <BotCard>
+              <Purchase props={JSON.parse(message.content)} />
+            </BotCard>
+          ) : message.name === 'getEvents' ? (
+            <BotCard>
+              <Events props={JSON.parse(message.content)} />
+            </BotCard>
+          ) : null
         ) : message.role === 'user' ? (
-          <UserMessage>{message.content as string}</UserMessage>
-        ) : message.role === 'assistant' &&
-          typeof message.content === 'string' ? (
+          <UserMessage>{message.content}</UserMessage>
+        ) : (
           <BotMessage content={message.content} />
-        ) : null
+        )
     }))
 }

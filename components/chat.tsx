@@ -7,8 +7,9 @@ import { EmptyScreen } from '@/components/empty-screen'
 import { useLocalStorage } from '@/lib/hooks/use-local-storage'
 import { useEffect, useState } from 'react'
 import { useUIState, useAIState } from 'ai/rsc'
-import { Message, Session } from '@/lib/types'
+import { Session } from '@/lib/types'
 import { usePathname, useRouter } from 'next/navigation'
+import { Message } from '@/lib/chat/actions'
 import { useScrollAnchor } from '@/lib/hooks/use-scroll-anchor'
 import { toast } from 'sonner'
 
@@ -70,7 +71,7 @@ export function Chat({ id, className, session, missingKeys }: ChatProps) {
         ) : (
           <EmptyScreen />
         )}
-        <div className="w-full h-px" ref={visibilityRef} />
+        <div className="h-px w-full" ref={visibilityRef} />
       </div>
       <ChatPanel
         id={id}
