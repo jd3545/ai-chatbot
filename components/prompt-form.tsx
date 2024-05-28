@@ -16,7 +16,7 @@ import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 
 const openai = createOpenAI({
-  apiKey: "insert-here"
+  apiKey: process.env.OPENAI_API_KEY
 });
 
 async function toBase64ImageUrl(imgUrl: string): Promise<string> {
